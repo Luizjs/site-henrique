@@ -1,9 +1,9 @@
 /* /public/style.css */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 20px;
-    background-color: #f4f4f4;
+    padding: 0;
+    background-color: #f0f2f5;
 }
 
 header {
@@ -13,54 +13,79 @@ header {
     background-color: #007bff;
     color: white;
     padding: 10px 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2 {
-    color: #333;
+h1 {
+    font-size: 1.8em;
+}
+
+.logout-btn {
+    background-color: #f53d3d;
+    padding: 10px 15px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.logout-btn:hover {
+    background-color: #c42f2f;
 }
 
 main {
-    margin-top: 20px;
+    padding: 20px;
 }
 
 .resource-form,
 .resource-list {
     background: white;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
     margin-bottom: 20px;
 }
 
-form {
-    margin-bottom: 20px;
+h2 {
+    color: #333;
+    font-size: 1.4em;
 }
 
-label {
-    display: block;
-    margin-top: 10px;
+.form-modern .input-group {
+    margin-bottom: 15px;
 }
 
-input {
+.form-modern label {
     display: block;
-    margin: 10px 0;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-modern input {
+    width: 100%;
     padding: 10px;
-    width: calc(100% - 22px);
+    border-radius: 5px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    transition: border-color 0.3s ease;
 }
 
-button {
-    padding: 10px 15px;
+.form-modern input:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+.add-btn {
     background-color: #007bff;
     color: white;
+    padding: 10px 15px;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
-    margin-right: 5px;
+    transition: background-color 0.3s ease;
 }
 
-button:hover {
+.add-btn:hover {
     background-color: #0056b3;
 }
 
@@ -68,36 +93,52 @@ button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 15px;
     margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.resource-item span {
-    margin-left: 10px;
+.resource-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.edit-button {
+.resource-info strong {
+    font-size: 1.2em;
+}
+
+button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.edit-btn {
     background-color: #28a745;
 }
 
-.edit-button:hover {
+.edit-btn:hover {
     background-color: #218838;
 }
 
-.delete-button {
+.delete-btn {
     background-color: #dc3545;
 }
 
-.delete-button:hover {
+.delete-btn:hover {
     background-color: #c82333;
 }
 
-.status-button {
-    background-color: #ffc107;
+.status-btn {
+    background-color: #17a2b8;
 }
 
-.status-button:hover {
-    background-color: #e0a800;
+.status-btn:hover {
+    background-color: #138496;
 }

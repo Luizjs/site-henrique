@@ -10,22 +10,30 @@
 <body>
     <header>
         <h1>Dashboard</h1>
-        <button onclick="logout()">Logout</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </header>
 
     <main>
         <section class="resource-form">
             <h2>Adicionar Recurso (Apenas Admin)</h2>
-            <form id="addResourceForm">
-                <label for="name">Nome:</label>
-                <input type="text" id="name" required>
-                <label for="type">Tipo:</label>
-                <input type="text" id="type" required>
-                <label for="status">Status:</label>
-                <input type="text" id="status" required>
-                <label for="quantity">Quantidade:</label>
-                <input type="number" id="quantity" required>
-                <button type="submit">Adicionar</button>
+            <form id="addResourceForm" class="form-modern">
+                <div class="input-group">
+                    <label for="name">Nome:</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="input-group">
+                    <label for="type">Tipo:</label>
+                    <input type="text" id="type" required>
+                </div>
+                <div class="input-group">
+                    <label for="status">Status:</label>
+                    <input type="text" id="status" required>
+                </div>
+                <div class="input-group">
+                    <label for="quantity">Quantidade:</label>
+                    <input type="number" id="quantity" required>
+                </div>
+                <button type="submit" class="add-btn">Adicionar</button>
             </form>
         </section>
 
@@ -36,8 +44,7 @@
     </main>
 
     <script>
-        // Defina aqui o papel do usuário (admin, manager ou employee).
-        window.role = 'admin'; // Substitua 'admin' pelo papel do usuário logado.
+        window.role = 'admin'; // Defina o papel conforme o usuário logado
 
         document.getElementById('addResourceForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -61,20 +68,22 @@
             const resources = await response.json();
             const resourceList = document.getElementById('resourceList');
             resourceList.innerHTML = '';
+
             resources.forEach(resource => {
                 const li = document.createElement('li');
                 li.classList.add('resource-item');
                 li.innerHTML = `
-                    <strong>${resource.name} (${resource.type})</strong>
-                    <span>Status: ${resource.status}</span>
-                    <span>Quantidade: ${resource.quantity}</span>
+                    <div class="resource-info">
+                        <strong>${resource.name} (${resource.type})</strong>
+                        <span>Status: ${resource.status}</span>
+                        <span>Quantidade: ${resource.quantity}</span>
+                    </div>
                 `;
 
-                // Adicionar botões de edição e exclusão se o usuário for admin ou gerente
                 if (window.role === 'admin' || window.role === 'manager') {
                     const editButton = document.createElement('button');
                     editButton.textContent = 'Editar';
-                    editButton.classList.add('edit-button');
+                    editButton.classList.add('edit-btn');
                     editButton.onclick = () => {
                         const newName = prompt('Novo nome:', resource.name);
                         const newType = prompt('Novo tipo:', resource.type);
@@ -94,7 +103,7 @@
                 if (window.role === 'admin') {
                     const deleteButton = document.createElement('button');
                     deleteButton.textContent = 'Excluir';
-                    deleteButton.classList.add('delete-button');
+                    deleteButton.classList.add('delete-btn');
                     deleteButton.onclick = async () => {
                         await fetch(`/delete-resource/${resource.id}`, { method: 'POST' });
                         loadResources();
@@ -102,10 +111,9 @@
                     li.appendChild(deleteButton);
                 }
 
-                // Adicionar opção de mudar status para todos
                 const changeStatusButton = document.createElement('button');
                 changeStatusButton.textContent = 'Mudar Status';
-                changeStatusButton.classList.add('status-button');
+                changeStatusButton.classList.add('status-btn');
                 changeStatusButton.onclick = async () => {
                     const newStatus = prompt('Novo status:', resource.status);
                     await fetch(`/change-status/${resource.id}`, {
