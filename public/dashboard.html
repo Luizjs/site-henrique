@@ -1,0 +1,133 @@
+<!-- /public/dashboard.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Dashboard - Indústrias Wayne</title>
+</head>
+<body>
+    <header>
+        <h1>Dashboard</h1>
+        <button onclick="logout()">Logout</button>
+    </header>
+
+    <main>
+        <section class="resource-form">
+            <h2>Adicionar Recurso (Apenas Admin)</h2>
+            <form id="addResourceForm">
+                <label for="name">Nome:</label>
+                <input type="text" id="name" required>
+                <label for="type">Tipo:</label>
+                <input type="text" id="type" required>
+                <label for="status">Status:</label>
+                <input type="text" id="status" required>
+                <label for="quantity">Quantidade:</label>
+                <input type="number" id="quantity" required>
+                <button type="submit">Adicionar</button>
+            </form>
+        </section>
+
+        <section class="resource-list">
+            <h2>Recursos</h2>
+            <ul id="resourceList"></ul>
+        </section>
+    </main>
+
+    <script>
+        // Defina aqui o papel do usuário (admin, manager ou employee).
+        window.role = 'admin'; // Substitua 'admin' pelo papel do usuário logado.
+
+        document.getElementById('addResourceForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const type = document.getElementById('type').value;
+            const status = document.getElementById('status').value;
+            const quantity = document.getElementById('quantity').value;
+
+            await fetch('/add-resource', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `name=${name}&type=${type}&status=${status}&quantity=${quantity}`
+            });
+            loadResources();
+        });
+
+        async function loadResources() {
+            const response = await fetch('/resources');
+            const resources = await response.json();
+            const resourceList = document.getElementById('resourceList');
+            resourceList.innerHTML = '';
+            resources.forEach(resource => {
+                const li = document.createElement('li');
+                li.classList.add('resource-item');
+                li.innerHTML = `
+                    <strong>${resource.name} (${resource.type})</strong>
+                    <span>Status: ${resource.status}</span>
+                    <span>Quantidade: ${resource.quantity}</span>
+                `;
+
+                // Adicionar botões de edição e exclusão se o usuário for admin ou gerente
+                if (window.role === 'admin' || window.role === 'manager') {
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Editar';
+                    editButton.classList.add('edit-button');
+                    editButton.onclick = () => {
+                        const newName = prompt('Novo nome:', resource.name);
+                        const newType = prompt('Novo tipo:', resource.type);
+                        const newStatus = prompt('Novo status:', resource.status);
+                        const newQuantity = prompt('Nova quantidade:', resource.quantity);
+                        fetch(`/edit-resource/${resource.id}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `name=${newName}&type=${newType}&status=${newStatus}&quantity=${newQuantity}`
+                        }).then(loadResources);
+                    };
+                    li.appendChild(editButton);
+                }
+
+                if (window.role === 'admin') {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Excluir';
+                    deleteButton.classList.add('delete-button');
+                    deleteButton.onclick = async () => {
+                        await fetch(`/delete-resource/${resource.id}`, { method: 'POST' });
+                        loadResources();
+                    };
+                    li.appendChild(deleteButton);
+                }
+
+                // Adicionar opção de mudar status para todos
+                const changeStatusButton = document.createElement('button');
+                changeStatusButton.textContent = 'Mudar Status';
+                changeStatusButton.classList.add('status-button');
+                changeStatusButton.onclick = async () => {
+                    const newStatus = prompt('Novo status:', resource.status);
+                    await fetch(`/change-status/${resource.id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `status=${newStatus}`
+                    });
+                    loadResources();
+                };
+                li.appendChild(changeStatusButton);
+
+                resourceList.appendChild(li);
+            });
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+
+        loadResources();
+    </script>
+</body>
+</html>
