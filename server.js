@@ -1,117 +1,96 @@
 // server.js
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const bodyParser = require('body-parser');
-const session = require('express-session');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
+const db = require('./db');
+const { verificarToken, verificarPermissao } = require('./middleware/auth');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const db = new sqlite3.Database('./db/database.db');
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({
-    secret: 'your_secret_key',
-    resave: false,
-    saveUninitialized: true,
-}));
-
+app.use(cors());
+app.use(express.json());
 app.use(express.static('public'));
 
-// Middleware para verificar se o usuário é admin
-function isAdmin(req, res, next) {
-    if (req.session.role === 'admin') {
-        return next();
-    }
-    return res.status(403).send('Acesso negado. Você não tem permissão para realizar esta ação.');
-}
+// Rota para registro de usuário
+app.post('/register', (req, res) => {
+    const { nome, email, senha, tipo } = req.body;
+    const senhaHash = bcrypt.hashSync(senha, 10);
 
-// Middleware para verificar se o usuário é gerente
-function isManager(req, res, next) {
-    if (req.session.role === 'manager') {
-        return next();
-    }
-    return isAdmin(req, res, next);
-}
+    db.run('INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?)',
+        [nome, email, senhaHash, tipo],
+        (err) => {
+            if (err) {
+                return res.status(500).json({ success: false, message: 'Erro ao registrar usuário.' });
+            }
+            res.json({ success: true });
+        });
+});
 
-// Rota para autenticação de usuário
+// Rota para login de usuário
 app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
-        if (err) {
-            return res.status(500).send('Internal Server Error');
+    const { email, senha } = req.body;
+
+    db.get('SELECT * FROM usuarios WHERE email = ?', [email], (err, user) => {
+        if (!user || !bcrypt.compareSync(senha, user.senha_hash)) {
+            return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
         }
-        if (row) {
-            req.session.userId = row.id;
-            req.session.role = row.role;
-            res.redirect('/dashboard.html');
-        } else {
-            res.status(401).send('Credenciais inválidas');
-        }
+
+        const token = Buffer.from(`${user.id}:${user.tipo_usuario}`).toString('base64');
+        res.json({ success: true, token });
     });
 });
 
-// Rota para adicionar recurso (apenas admin)
-app.post('/add-resource', isAdmin, (req, res) => {
-    const { name, type, status, quantity } = req.body;
-    db.run('INSERT INTO resources (name, type, status, quantity) VALUES (?, ?, ?, ?)', [name, type, status, quantity], (err) => {
+// Rota para listar recursos
+app.get('/api/recursos', verificarToken, verificarPermissao('visualizar'), (req, res) => {
+    db.all('SELECT * FROM recursos', [], (err, rows) => {
         if (err) {
-            return res.status(500).send('Internal Server Error');
+            console.error('Erro ao listar recursos:', err.message);
+            return res.status(500).json({ success: false, message: 'Erro ao listar recursos.' });
         }
-        res.redirect('/dashboard.html');
+        res.json({ success: true, data: rows });
     });
 });
 
-// Rota para editar recurso (apenas gerente)
-app.post('/edit-resource/:id', isManager, (req, res) => {
-    const { id } = req.params;
-    const { name, type, status, quantity } = req.body;
-    db.run('UPDATE resources SET name = ?, type = ?, status = ?, quantity = ? WHERE id = ?', [name, type, status, quantity, id], (err) => {
-        if (err) {
-            return res.status(500).send('Internal Server Error');
-        }
-        res.redirect('/dashboard.html');
+// Rota para adicionar recurso
+app.post('/api/recursos', verificarToken, verificarPermissao('adicionar'), (req, res) => {
+    const { nome_recurso, descricao, quantidade, valor, status } = req.body;
+    db.run('INSERT INTO recursos (nome_recurso, descricao, quantidade, valor, status) VALUES (?, ?, ?, ?, ?)',
+        [nome_recurso, descricao, quantidade, valor, status],
+        (err) => {
+            if (err) return res.status(500).json({ success: false, message: 'Erro ao adicionar recurso' });
+            res.json({ success: true });
+        });
+});
+
+// Rota para buscar um recurso específico
+app.get('/api/recursos/:id', verificarToken, verificarPermissao('visualizar'), (req, res) => {
+    db.get('SELECT * FROM recursos WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row) return res.status(404).json({ success: false, message: 'Recurso não encontrado' });
+        res.json({ success: true, data: row });
     });
 });
 
-// Rota para excluir recurso (apenas admin)
-app.post('/delete-resource/:id', isAdmin, (req, res) => {
-    const { id } = req.params;
-    db.run('DELETE FROM resources WHERE id = ?', id, (err) => {
-        if (err) {
-            return res.status(500).send('Internal Server Error');
-        }
-        res.redirect('/dashboard.html');
+// Rota para atualizar um recurso
+app.put('/api/recursos/:id', verificarToken, verificarPermissao('editar'), (req, res) => {
+    const { nome_recurso, descricao, quantidade, valor, status } = req.body;
+    db.run('UPDATE recursos SET nome_recurso = ?, descricao = ?, quantidade = ?, valor = ?, status = ? WHERE id = ?',
+        [nome_recurso, descricao, quantidade, valor, status, req.params.id],
+        (err) => {
+            if (err) return res.status(500).json({ success: false, message: 'Erro ao atualizar recurso' });
+            res.json({ success: true });
+        });
+});
+
+// Rota para deletar um recurso
+app.delete('/api/recursos/:id', verificarToken, verificarPermissao('remover'), (req, res) => {
+    db.run('DELETE FROM recursos WHERE id = ?', [req.params.id], (err) => {
+        if (err) return res.status(500).json({ success: false, message: 'Erro ao excluir recurso' });
+        res.json({ success: true });
     });
 });
 
-// Rota para mudar status (qualquer usuário)
-app.post('/change-status/:id', (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
-    db.run('UPDATE resources SET status = ? WHERE id = ?', [status, id], (err) => {
-        if (err) {
-            return res.status(500).send('Internal Server Error');
-        }
-        res.redirect('/dashboard.html');
-    });
-});
+app.use(errorHandler);
 
-// Rota para obter recursos
-app.get('/resources', (req, res) => {
-    db.all('SELECT * FROM resources', [], (err, rows) => {
-        if (err) {
-            return res.status(500).send('Internal Server Error');
-        }
-        res.json(rows);
-    });
-});
-
-// Rota para logout
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(3000, () => {
+    console.log('Server running on http://localhost:3000');
 });

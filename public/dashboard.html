@@ -1,141 +1,57 @@
-<!-- /public/dashboard.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Dashboard - Indústrias Wayne</title>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Dashboard</h1>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-    </header>
-
-    <main>
-        <section class="resource-form">
-            <h2>Adicionar Recurso (Apenas Admin)</h2>
-            <form id="addResourceForm" class="form-modern">
-                <div class="input-group">
-                    <label for="name">Nome:</label>
-                    <input type="text" id="name" required>
-                </div>
-                <div class="input-group">
-                    <label for="type">Tipo:</label>
-                    <input type="text" id="type" required>
-                </div>
-                <div class="input-group">
-                    <label for="status">Status:</label>
-                    <input type="text" id="status" required>
-                </div>
-                <div class="input-group">
-                    <label for="quantity">Quantidade:</label>
-                    <input type="number" id="quantity" required>
-                </div>
-                <button type="submit" class="add-btn">Adicionar</button>
-            </form>
-        </section>
-
-        <section class="resource-list">
-            <h2>Recursos</h2>
-            <ul id="resourceList"></ul>
-        </section>
-    </main>
-
-    <script>
-        window.role = 'admin'; // Defina o papel conforme o usuário logado
-
-        document.getElementById('addResourceForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const type = document.getElementById('type').value;
-            const status = document.getElementById('status').value;
-            const quantity = document.getElementById('quantity').value;
-
-            await fetch('/add-resource', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `name=${name}&type=${type}&status=${status}&quantity=${quantity}`
-            });
-            loadResources();
-        });
-
-        async function loadResources() {
-            const response = await fetch('/resources');
-            const resources = await response.json();
-            const resourceList = document.getElementById('resourceList');
-            resourceList.innerHTML = '';
-
-            resources.forEach(resource => {
-                const li = document.createElement('li');
-                li.classList.add('resource-item');
-                li.innerHTML = `
-                    <div class="resource-info">
-                        <strong>${resource.name} (${resource.type})</strong>
-                        <span>Status: ${resource.status}</span>
-                        <span>Quantidade: ${resource.quantity}</span>
+    <div class="container">
+        <h2>Dashboard</h2>
+        
+        <div class="section">
+            <h3>Gráfico de Recurso Selecionado</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+        
+        <div class="section">
+            <h3>Lista de Recursos</h3>
+            <div id="resourceList">
+                    
+                    <div id="editForm-1" style="display:none;" class="edit-form">
+                        <form id="form-1">
+                            <label for="nome">Nome do Recurso:</label>
+                            <input type="text" id="nome-1" name="nome" value="Nome do Recurso" required>
+                            
+                            <label for="descricao">Descrição:</label>
+                            <input type="text" id="descricao-1" name="descricao" value="Exemplo de descrição do recurso" required>
+                            
+                            <label for="quantidade">Quantidade:</label>
+                            <input type="number" id="quantidade-1" name="quantidade" value="10" required>
+                            
+                            <label for="valor">Valor Unitário ($):</label>
+                            <input type="number" id="valor-1" name="valor" value="150.00" required step="0.01">
+                            
+                            <label for="status">Status:</label>
+                            <select id="status-1" name="status" required>
+                                <option value="disponível">Disponível</option>
+                                <option value="em uso">Em Uso</option>
+                            </select>
+                            
+                            <button class="save-btn" type="submit">Salvar</button>
+                        </form>
                     </div>
-                `;
+                </div>
+                
+            </div>
+        </div>
 
-                if (window.role === 'admin' || window.role === 'manager') {
-                    const editButton = document.createElement('button');
-                    editButton.textContent = 'Editar';
-                    editButton.classList.add('edit-btn');
-                    editButton.onclick = () => {
-                        const newName = prompt('Novo nome:', resource.name);
-                        const newType = prompt('Novo tipo:', resource.type);
-                        const newStatus = prompt('Novo status:', resource.status);
-                        const newQuantity = prompt('Nova quantidade:', resource.quantity);
-                        fetch(`/edit-resource/${resource.id}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `name=${newName}&type=${newType}&status=${newStatus}&quantity=${newQuantity}`
-                        }).then(loadResources);
-                    };
-                    li.appendChild(editButton);
-                }
+        <button id="goToResources">Gerenciar Recursos</button>
+        <button onclick="logout()">Sair</button>
+    </div>
 
-                if (window.role === 'admin') {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Excluir';
-                    deleteButton.classList.add('delete-btn');
-                    deleteButton.onclick = async () => {
-                        await fetch(`/delete-resource/${resource.id}`, { method: 'POST' });
-                        loadResources();
-                    };
-                    li.appendChild(deleteButton);
-                }
-
-                const changeStatusButton = document.createElement('button');
-                changeStatusButton.textContent = 'Mudar Status';
-                changeStatusButton.classList.add('status-btn');
-                changeStatusButton.onclick = async () => {
-                    const newStatus = prompt('Novo status:', resource.status);
-                    await fetch(`/change-status/${resource.id}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `status=${newStatus}`
-                    });
-                    loadResources();
-                };
-                li.appendChild(changeStatusButton);
-
-                resourceList.appendChild(li);
-            });
-        }
-
-        function logout() {
-            window.location.href = '/logout';
-        }
-
-        loadResources();
-    </script>
+    <script src="dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
